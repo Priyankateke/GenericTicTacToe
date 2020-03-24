@@ -18,4 +18,14 @@ function resetBoard()
 	done
 }
 
+function assignSignToPlayer()
+{
+	if [ $(( RANDOM % 2 )) -eq 1 ]; then
+		player=X
+	else
+		player=O
+	fi
+}
+
 resetBoard
+assignSignToPlayer
