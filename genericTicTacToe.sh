@@ -4,7 +4,6 @@ echo "Welcome To Generic Tic Tac Toe"
 
 #variables
 playerMoves=1
-playerTurn=0
 
 # 2D array for game board
 declare -A gameBoard
@@ -72,6 +71,7 @@ function playerTurn()
 	read -p "Enter column number(column number start from 0) : " column
 	if [[ $row -ge 0 && $row -lt $BOARD_SIZE && $column -ge 0 && $column -lt $BOARD_SIZE ]]; then
 		isCellEmpty $row $column $player
+		checkWinningCells
 	else
 		echo "Please Enter Value"
 		playerTurn
@@ -81,15 +81,15 @@ function playerTurn()
 #Function for computer play
 function computerTurn()
 {
-	[ ${FUNCNAME[1]} == switchPlayer ] && echo " Computer Turn Sign $computer"
 	playerTurn=0
+	checkWinningCells $computer
 	row=$((RANDOM % $BOARD_SIZE))
 	col=$((RANDOM % $BOARD_SIZE))
-	isCellEmpty $row $col $computer
+	[ $? == 0 ] && isCellEmpty $row $col $computer
 }
 
 #checking position is already filled or blank
-function isCellEmpty() 
+function isCellEmpty()
 {
 	local row=$1 column=$2 sign=$3
 	if [[ "${gameBoard[$row,$column]}" != "X" && "${gameBoard[$row,$column]}" != "O" ]]
@@ -105,6 +105,8 @@ function isCellEmpty()
 #Checking column, rows and diagonals
 function checkWinningCells()
 {
+	[ ${FUNCNAME[1]} == "playerTurn" ] && call=checkWinner || call=checkForComputer; sign=$1;
+
 	declare -A cellsOfLeftDiagonal
 	countForDiagonal=0
 	for(( row=0;row<BOARD_SIZE;row++ ))
@@ -122,10 +124,10 @@ function checkWinningCells()
 
 			((countForRowCol++))
 		done
-		checkWinner ${cellsOfRow[@]}
-		checkWinner ${cellsOfColumn[@]}
+		[ $? == 0 ] && $call ${cellsOfRow[@]} || return 1
+		[ $? == 0 ] && $call ${cellsOfColumn[@]} || return 1
 	done
-	checkWinner ${cellsOfLeftDiagonal[@]}
+	[ $? == 0 ] && $call ${cellsOfLeftDiagonal[@]} || return 1
 
 	#for right diagonals
 	countForDiagonal=0
@@ -133,7 +135,7 @@ function checkWinningCells()
 	do
 		cellsOfRightDiagonal[((countForDiagonal++))]=$row,$col
 	done
-	checkWinner ${cellsOfRightDiagonal[@]}
+	[ $? == 0 ] && $call ${cellsOfRightDiagonal[@]} || return 1
 }
 
 #Checking winner
@@ -158,7 +160,34 @@ function checkWinner()
 	if [ $cellCount == $BOARD_SIZE ]; then 
 		[ $sign == $player ] && winner=player || winner=computer
 		echo "$winner Win and Have Sign $sign"
+		displayBoard
 		exit
+	fi
+}
+
+#Computer trying to win
+function checkForComputer()
+{
+	local cells=("$@")
+	local cellCount=0
+
+	for i in ${cells[@]}
+	do
+		if [ ${gameBoard[$i]} == $sign ]; then
+			((cellCount++))
+		fi
+	done
+
+	if [ $cellCount == $((BOARD_SIZE-1)) ]; then
+		for i in ${cells[@]}
+		do
+			if [ ${gameBoard[$i]} == "-" ]; then
+				gameBoard[$i]=$computer
+				checkWinner ${cells[@]}
+				((playerMoves++))
+				return 1
+			fi
+		done
 	fi
 }
 
@@ -170,7 +199,6 @@ function playTillGameEnd()
 	while [ $playerMoves -le $TOTAL_MOVES ]
 	do
 		displayBoard
-		checkWinningCells
 		switchPlayer
 	done
 	displayBoard
