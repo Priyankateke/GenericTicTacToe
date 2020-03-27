@@ -14,6 +14,7 @@ TOTAL_MOVES=$((BOARD_SIZE * BOARD_SIZE))
 #Restting game board
 function resetBoard()
 {
+	count=0
 	for((row=0;row<BOARD_SIZE;row++))
 	do
 		for((column=0;column<BOARD_SIZE;column++))
@@ -38,19 +39,24 @@ function displayBoard()
 	echo " "
 }
 
-
 #Assiging letter X or O to player and decide who play first
 function tossForPlay()
 {
 	if [ $(( RANDOM % 2 )) -eq 0 ]; then
 		player="X"
-		playerTurn=true
 	else
 		player="O"
-		playerTurn=true
 	fi
 	echo "player sign $player"
 }
+
+#Switching sign assign to players
+function switchPlayerSign()
+{
+	#Checking condition using Ternary operators
+	[ $player == "X" ] && player="O" || player="X"
+}
+
 
 #Function for user play
 function userPlay()
@@ -65,6 +71,20 @@ function userPlay()
 	fi
 }
 
+#checking position is already filled or blank
+function isCellEmpty() 
+{
+	local row=$1 column=$2
+	if [[ "${gameBoard[$row,$column]}" != "X" && "${gameBoard[$row,$column]}" != "O" ]]
+	then
+		gameBoard[$row,$column]=$player
+		((playerMoves++))
+	else
+		echo "Position is Occupied"
+		userPlay
+	fi
+}
+
 #Running game untill game ends
 function playTillGameEnd()
 {
@@ -72,19 +92,62 @@ function playTillGameEnd()
 	do
 		userPlay
 		displayBoard
+		checkWinningCells
+		switchPlayerSign
 	done
+	echo "Game Tie"
 }
 
-#checking position is already filled or blank
-function isCellEmpty() 
+#Checking column, rows and diagonals
+function checkWinningCells()
 {
-	local row=$1 column=$2
-	if [[ "${gameBoard[$row,$column]}" != "$player" ]]
-	then
-		gameBoard[$row,$column]=$player
-		((playerMoves++))
-	else
-		echo "Position is Occupied"
+	declare -A cellsOfLeftDiagonal
+	countForDiagonal=0
+	for(( row=0;row<BOARD_SIZE;row++ ))
+	do
+		countForRowCol=0
+		declare -A cellsOfRow
+		declare -A cellsOfColumn
+		for(( col=0;col<BOARD_SIZE;col++ ))
+		do
+			cellsOfRow[$countForRowCol]=$row,$col
+			cellsOfColumn[$countForRowCol]=$col,$row
+			if [[ $row == $col ]]; then 
+				cellsOfLeftDiagonal[((countForDiagonal++))]=$row,$col
+			fi
+
+			((countForRowCol++))
+		done
+		checkWinner ${cellsOfRow[@]}
+		checkWinner ${cellsOfColumn[@]}
+	done
+	checkWinner ${cellsOfLeftDiagonal[@]}
+
+	#for right diagonals
+	countForDiagonal=0
+	for(( row=0,col=$((BOARD_SIZE-1));row<BOARD_SIZE;row++,col--))
+	do
+		cellsOfRightDiagonal[((countForDiagonal++))]=$row,$col
+	done
+	checkWinner ${cellsOfRightDiagonal[@]}
+}
+
+#Checking winner
+function checkWinner()
+{
+	local cells=("$@")
+	local cellCount=0
+
+	for i in ${cells[@]}
+	do
+		if [ ${gameBoard[$i]} == $player ]; then
+			((cellCount++))
+		fi
+	done
+	
+	if [ $cellCount == $BOARD_SIZE ]; then
+		echo "Player Win and Have Sign $player"
+		exit
 	fi
 }
 
