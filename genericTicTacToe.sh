@@ -4,6 +4,7 @@ echo "Welcome To Generic Tic Tac Toe"
 
 #variables
 playerMoves=1
+playerTurn=0
 
 # 2D array for game board
 declare -A gameBoard
@@ -43,59 +44,62 @@ function displayBoard()
 function tossForPlay()
 {
 	if [ $(( RANDOM % 2 )) -eq 0 ]; then
-		player="X"
-	else
+		computer="X"
 		player="O"
+	else
+		player="X"
+		computer="O"
 	fi
-	echo "player sign $player"
+
+	[ $player == X ] && echo "Player play first with X sign" || echo "Computer play first with X sign"
+	[ $player == X ] && playerTurn || computerTurn
 }
 
 #Switching sign assign to players
-function switchPlayerSign()
+function switchPlayer()
 {
 	#Checking condition using Ternary operators
-	[ $player == "X" ] && player="O" || player="X"
+	[ $playerTurn == 1 ] && computerTurn || playerTurn
 }
 
-
 #Function for user play
-function userPlay()
+function playerTurn()
 {
+	#FUNCNAME is an array containing all the names of the functions in the call stack
+	playerTurn=1
+	[ ${FUNCNAME[1]} == switchPlayer ] && echo "Player Turn Sign : $player"
 	read -p "Enter row number(row number start from 0) : " row
 	read -p "Enter column number(column number start from 0) : " column
 	if [[ $row -ge 0 && $row -lt $BOARD_SIZE && $column -ge 0 && $column -lt $BOARD_SIZE ]]; then
-		isCellEmpty $row $column
+		isCellEmpty $row $column $player
 	else
-		echo "Invalid Position"
-		userPlay
+		echo "Please Enter Value"
+		playerTurn
 	fi
+}
+
+#Function for computer play
+function computerTurn()
+{
+	[ ${FUNCNAME[1]} == switchPlayer ] && echo " Computer Turn Sign $computer"
+	playerTurn=0
+	row=$((RANDOM % $BOARD_SIZE))
+	col=$((RANDOM % $BOARD_SIZE))
+	isCellEmpty $row $col $computer
 }
 
 #checking position is already filled or blank
 function isCellEmpty() 
 {
-	local row=$1 column=$2
+	local row=$1 column=$2 sign=$3
 	if [[ "${gameBoard[$row,$column]}" != "X" && "${gameBoard[$row,$column]}" != "O" ]]
 	then
-		gameBoard[$row,$column]=$player
+		gameBoard[$row,$column]=$sign
 		((playerMoves++))
 	else
-		echo "Position is Occupied"
-		userPlay
+		[ ${FUNCNAME[1]} == "playerTurn" ] && echo "Position is Occupied"
+		${FUNCNAME[1]}
 	fi
-}
-
-#Running game untill game ends
-function playTillGameEnd()
-{
-	while [ $playerMoves -le $TOTAL_MOVES ]
-	do
-		userPlay
-		displayBoard
-		checkWinningCells
-		switchPlayerSign
-	done
-	echo "Game Tie"
 }
 
 #Checking column, rows and diagonals
@@ -138,19 +142,40 @@ function checkWinner()
 	local cells=("$@")
 	local cellCount=0
 
+	if [ $playerTurn == 1 ]; then
+		sign=$player
+	else
+		sign=$computer
+	fi
+
 	for i in ${cells[@]}
 	do
-		if [ ${gameBoard[$i]} == $player ]; then
+		if [ ${gameBoard[$i]} == $sign ]; then
 			((cellCount++))
 		fi
 	done
-	
-	if [ $cellCount == $BOARD_SIZE ]; then
-		echo "Player Win and Have Sign $player"
+
+	if [ $cellCount == $BOARD_SIZE ]; then 
+		[ $sign == $player ] && winner=player || winner=computer
+		echo "$winner Win and Have Sign $sign"
 		exit
 	fi
 }
 
-resetBoard
-tossForPlay
+#Running game untill game ends
+function playTillGameEnd()
+{
+	resetBoard
+	tossForPlay
+	while [ $playerMoves -le $TOTAL_MOVES ]
+	do
+		displayBoard
+		checkWinningCells
+		switchPlayer
+	done
+	displayBoard
+	echo "Game Tie"
+}
+
+#starting game
 playTillGameEnd
