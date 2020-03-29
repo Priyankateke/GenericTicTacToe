@@ -89,10 +89,13 @@ function computerTurn()
 	checkWinningCells $computer
 	[ $flag == 0 ] && checkWinningCells $player
 	[ $flag == 0 ] && takeCornerPosition
+	[ $flag == 0 ] && takeCentersPosition
 
 	row=$((RANDOM % $BOARD_SIZE))
 	col=$((RANDOM % $BOARD_SIZE))
 	[ $flag == 0 ] && isCellEmpty $row $col $computer
+
+	displayBoard
 }
 
 #checking position is already filled or blank
@@ -204,12 +207,29 @@ function checkForComputer()
 	fi
 }
 
-#Checking corner is available
+#Set mark on corners if position is vacant
 function takeCornerPosition()
 {
 	for(( row=0;row<$BOARD_SIZE;row+=$((BOARD_SIZE-1)) ))
 	do
 		for(( col=0;col<$BOARD_SIZE;col+=$((BOARD_SIZE-1)) ))
+		do
+			if [ ${gameBoard[$row,$col]} == "-" ]; then
+				gameBoard[$row,$col]=$computer
+				((playerMoves++))
+				flag=1
+				return
+			fi
+		done
+	done
+}
+
+#Set mark on centers if position is vacant
+function takeCentersPosition()
+{
+	for((row=1;row<$((BOARD_SIZE-1));row++))
+	do
+		for((col=1;col<$((BOARD_SIZE-1));col++))
 		do
 			if [ ${gameBoard[$row,$col]} == "-" ]; then
 				gameBoard[$row,$col]=$computer
@@ -228,7 +248,7 @@ function playTillGameEnd()
 	tossForPlay
 	while [ $playerMoves -le $TOTAL_MOVES ]
 	do
-		displayBoard
+		#displayBoard
 		switchPlayer
 	done
 	displayBoard
