@@ -88,6 +88,8 @@ function computerTurn()
 
 	checkWinningCells $computer
 	[ $flag == 0 ] && checkWinningCells $player
+	[ $flag == 0 ] && takeCornerPosition
+
 	row=$((RANDOM % $BOARD_SIZE))
 	col=$((RANDOM % $BOARD_SIZE))
 	[ $flag == 0 ] && isCellEmpty $row $col $computer
@@ -200,6 +202,23 @@ function checkForComputer()
 			fi
 		done
 	fi
+}
+
+#Checking corner is available
+function takeCornerPosition()
+{
+	for(( row=0;row<$BOARD_SIZE;row+=$((BOARD_SIZE-1)) ))
+	do
+		for(( col=0;col<$BOARD_SIZE;col+=$((BOARD_SIZE-1)) ))
+		do
+			if [ ${gameBoard[$row,$col]} == "-" ]; then
+				gameBoard[$row,$col]=$computer
+				((playerMoves++))
+				flag=1
+				return
+			fi
+		done
+	done
 }
 
 #Running game untill game ends
