@@ -14,7 +14,6 @@ TOTAL_MOVES=$((BOARD_SIZE * BOARD_SIZE))
 #Restting game board
 function resetBoard()
 {
-	count=0
 	for((row=0;row<BOARD_SIZE;row++))
 	do
 		for((column=0;column<BOARD_SIZE;column++))
@@ -85,16 +84,11 @@ function computerTurn()
 	[ ${FUNCNAME[1]} == switchPlayer ] && echo " Computer Turn Sign $computer"
 
 	flag=0
-
 	checkWinningCells $computer
 	[ $flag == 0 ] && checkWinningCells $player
 	[ $flag == 0 ] && takeCornerPosition
 	[ $flag == 0 ] && takeCentersPosition
-
-	row=$((RANDOM % $BOARD_SIZE))
-	col=$((RANDOM % $BOARD_SIZE))
-	[ $flag == 0 ] && isCellEmpty $row $col $computer
-
+	[ $flag == 0 ] && takeSidesPosition
 	displayBoard
 }
 
@@ -241,6 +235,54 @@ function takeCentersPosition()
 	done
 }
 
+#Set mark on sides if position is vacant
+function takeSidesPosition()
+{
+	row=0
+	for(( col=1;col<$((BOARD_SIZE-1));col++ ))
+	do
+		if [ ${gameBoard[$row,$col]} == "-" ]; then
+			gameBoard[$row,$col]=$computer
+			((playerMoves++))
+			flag=1
+			return
+		fi
+	done
+
+	col=0
+	for(( row=1;row<$((BOARD_SIZE-1));row++ ))
+	do
+		if [ ${gameBoard[$row,$col]} == "-" ]; then
+			gameBoard[$row,$col]=$computer
+			((playerMoves++))
+			flag=1
+			return
+		fi
+	done
+
+	row=$((BOARD_SIZE-1))
+	for(( col=1;col<$((BOARD_SIZE-1));col++ ))
+	do
+		if [ ${gameBoard[$row,$col]} == "-" ]; then
+			gameBoard[$row,$col]=$computer
+			((playerMoves++))
+			flag=1
+			return
+		fi
+	done
+
+	col=$((BOARD_SIZE-1))
+	for(( row=1;row<$((BOARD_SIZE-1));row++ ))
+	do
+		if [ ${gameBoard[$row,$col]} == "-" ]; then
+			gameBoard[$row,$col]=$computer
+			((playerMoves++))
+			flag=1
+			return
+		fi
+	done
+}
+
 #Running game untill game ends
 function playTillGameEnd()
 {
@@ -248,7 +290,6 @@ function playTillGameEnd()
 	tossForPlay
 	while [ $playerMoves -le $TOTAL_MOVES ]
 	do
-		#displayBoard
 		switchPlayer
 	done
 	displayBoard
