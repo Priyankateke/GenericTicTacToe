@@ -64,8 +64,8 @@ function switchPlayer()
 #Function for user play
 function playerTurn()
 {
-	#FUNCNAME is an array containing all the names of the functions in the call stack
 	playerTurn=1
+	#FUNCNAME is an array containing all the names of the functions in the call stack
 	[ ${FUNCNAME[1]} == switchPlayer ] && echo "Player Turn Sign : $player"
 	read -p "Enter row number(row number start from 0) : " row
 	read -p "Enter column number(column number start from 0) : " column
@@ -82,10 +82,15 @@ function playerTurn()
 function computerTurn()
 {
 	playerTurn=0
+	[ ${FUNCNAME[1]} == switchPlayer ] && echo " Computer Turn Sign $computer"
+
+	flag=0
+
 	checkWinningCells $computer
+	[ $flag == 0 ] && checkWinningCells $player
 	row=$((RANDOM % $BOARD_SIZE))
 	col=$((RANDOM % $BOARD_SIZE))
-	[ $? == 0 ] && isCellEmpty $row $col $computer
+	[ $flag == 0 ] && isCellEmpty $row $col $computer
 }
 
 #checking position is already filled or blank
@@ -109,33 +114,38 @@ function checkWinningCells()
 
 	declare -A cellsOfLeftDiagonal
 	countForDiagonal=0
+	flag=0
+
 	for(( row=0;row<BOARD_SIZE;row++ ))
 	do
-		countForRowCol=0
 		declare -A cellsOfRow
 		declare -A cellsOfColumn
+		countForRowCol=0
+
 		for(( col=0;col<BOARD_SIZE;col++ ))
 		do
 			cellsOfRow[$countForRowCol]=$row,$col
 			cellsOfColumn[$countForRowCol]=$col,$row
-			if [[ $row == $col ]]; then 
-				cellsOfLeftDiagonal[((countForDiagonal++))]=$row,$col
+			if [[ $row == $col ]]; then
+				cellsOfLeftDiagonal[$countForDiagonal]=$row,$col
+				((countForDiagonal++))
 			fi
-
 			((countForRowCol++))
 		done
-		[ $? == 0 ] && $call ${cellsOfRow[@]} || return 1
-		[ $? == 0 ] && $call ${cellsOfColumn[@]} || return 1
+		[ $flag == 0 ] && $call ${cellsOfRow[@]}
+		[ $flag == 0 ] && $call ${cellsOfColumn[@]}
 	done
-	[ $? == 0 ] && $call ${cellsOfLeftDiagonal[@]} || return 1
+	[ $flag == 0 ] && $call ${cellsOfLeftDiagonal[@]}
 
 	#for right diagonals
+	declare -A cellsOfRightDiagonal
 	countForDiagonal=0
 	for(( row=0,col=$((BOARD_SIZE-1));row<BOARD_SIZE;row++,col--))
 	do
-		cellsOfRightDiagonal[((countForDiagonal++))]=$row,$col
+		cellsOfRightDiagonal[$countForDiagonal]=$row,$col
+		((countForDiagonal++))
 	done
-	[ $? == 0 ] && $call ${cellsOfRightDiagonal[@]} || return 1
+	[ $flag == 0 ] && $call ${cellsOfRightDiagonal[@]} 
 }
 
 #Checking winner
@@ -157,7 +167,7 @@ function checkWinner()
 		fi
 	done
 
-	if [ $cellCount == $BOARD_SIZE ]; then 
+	if [ $cellCount == $BOARD_SIZE ]; then
 		[ $sign == $player ] && winner=player || winner=computer
 		echo "$winner Win and Have Sign $sign"
 		displayBoard
@@ -185,7 +195,8 @@ function checkForComputer()
 				gameBoard[$i]=$computer
 				checkWinner ${cells[@]}
 				((playerMoves++))
-				return 1
+				flag=1
+				break
 			fi
 		done
 	fi
